@@ -1,1 +1,49 @@
+name: John Pye monitor
+
+on:
+  schedule:
+    # Every 6 hours. GitHub may delay scheduled runs by a few minutes at busy times.
+    # Change to '0 7 * * *' for once daily at 07:00 UTC, or '0 */3 * * *' for every 3h.
+    - cron: '0 */6 * * *'
+  workflow_dispatch: {}   # lets you run it manually from the Actions tab
+
+permissions:
+  contents: write         # needed to commit the updated seen.json back
+
+concurrency:
+  group: johnpye-monitor
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - run: pip install -r requirements.txt
+
+      - name: Run monitor
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          EMAIL_TO:  ${{ secrets.EMAIL_TO }}
+        run: python monitor.py
+
+      - name: Save state
+        run: |
+          if ! git diff --quiet -- seen.json; then
+            git config user.name  "johnpye-monitor"
+            git config user.email "actions@github.com"
+            git add seen.json
+            git commit -m "Update seen lots [skip ci]"
+            git push
+          else
+            echo "No state change."
+          fi
 
