@@ -1,0 +1,43 @@
+# ONE WATCH PER LINE. Lines starting with # are ignored. Up to ~15 is fine.
+# A line can be any of these:
+#   plain keyword          unifi
+#   labelled keyword       UniFi kit | ubiquiti
+#   full search URL        https://www.johnpyeauctions.co.uk/Browse?FullTextQuery=dewalt&StatusFilter=active_only
+#   labelled full URL      110V @ Birmingham | https://www.johnpyeauctions.co.uk/Browse/R200440056/BIRMINGHAM?FullTextQuery=110v&CategoryID=9&SortFilterOptions=1&StatusFilter=active_only
+#
+# TIP: to reuse a "refine" (region / category / sort / price), do the search on
+# the website, then copy the URL from your browser's address bar and paste it here.
+
+unifi
+ubiquiti
+Eight sleep
+GRAYSON
+Bradwell
+bridstow
+Richmond
+Moncler
+Canada Goose
+Snapdragon
+White company
+advent
+ELixir
+Xerjoff
+Illy
+Tugboat
+dior b22
+eider
+frost vault
+jura coffee
+laser printer
+mankind 38
+nordic oak
+peloton
+projector
+PRO DLX 
+sauvage
+tequila
+white company cavendish
+white company cranleigh
+
+# Example of a refined watch (110V tools, Birmingham showroom, newest first):
+110V @ Birmingham | https://www.johnpyeauctions.co.uk/Browse/R200440056/BIRMINGHAM?FullTextQuery=110v&SortFilterOptions=1&StatusFilter=active_only
