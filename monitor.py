@@ -32,8 +32,16 @@ from urllib.parse import quote, urlparse, urlunparse, parse_qsl, urlencode
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-import requests
 from bs4 import BeautifulSoup
+
+# Prefer curl_cffi, which can impersonate a real Chrome browser's TLS/HTTP
+# fingerprint - this is what gets past Cloudflare's 403 on data-centre IPs.
+try:
+    from curl_cffi import requests as http
+    _CAN_IMPERSONATE = True
+except ImportError:                      # falls back to plain requests locally
+    import requests as http
+    _CAN_IMPERSONATE = False
 
 # --- Config -----------------------------------------------------------------
 
@@ -45,8 +53,18 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SEEN_FILE = os.path.join(HERE, "seen.json")
 KEYWORDS_FILE = os.path.join(HERE, "keywords.txt")
 
-USER_AGENT = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-              "(KHTML, like Gecko) Chrome/125.0 Safari/537.36")
+USER_AGENT = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+              "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
+# curl_cffi impersonation targets, tried in order until one is accepted.
+IMPERSONATE = ["chrome124", "chrome120", "chrome110", "safari17_0"]
+BROWSER_HEADERS = {
+    "User-Agent": USER_AGENT,
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,"
+              "image/avif,image/webp,image/apng,*/*;q=0.8",
+    "Accept-Language": "en-GB,en;q=0.9",
+    "Referer": BASE + "/",
+    "Upgrade-Insecure-Requests": "1",
+}
 REQUEST_TIMEOUT = 30
 DELAY_BETWEEN_REQUESTS = 3     # seconds, be polite
 MAX_PAGES = 10                 # safety cap for very broad searches
@@ -106,9 +124,26 @@ def _with_page(url, page):
 # --- Scraping ---------------------------------------------------------------
 
 def fetch(url):
-    r = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=REQUEST_TIMEOUT)
-    r.raise_for_status()
-    return r.text
+    """Fetch a URL as a real browser. Retries across TLS fingerprints on 403."""
+    last = None
+    attempts = IMPERSONATE if _CAN_IMPERSONATE else [None]
+    for imp in attempts:
+        try:
+            if _CAN_IMPERSONATE:
+                r = http.get(url, headers=BROWSER_HEADERS, impersonate=imp,
+                             timeout=REQUEST_TIMEOUT)
+            else:
+                r = http.get(url, headers=BROWSER_HEADERS, timeout=REQUEST_TIMEOUT)
+            if r.status_code in (403, 429, 503):   # blocked - try next fingerprint
+                last = f"{r.status_code} on {imp or 'plain'}"
+                time.sleep(2)
+                continue
+            r.raise_for_status()
+            return r.text
+        except Exception as e:
+            last = e
+            time.sleep(2)
+    raise RuntimeError(f"blocked/failed after {len(attempts)} attempt(s): {last}")
 
 
 def page_status(html_text):
