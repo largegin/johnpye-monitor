@@ -1,14 +1,12 @@
 name: John Pye monitor
 
-on:
+"on":
   schedule:
-    # Every 6 hours. GitHub may delay scheduled runs by a few minutes at busy times.
-    # Change to '0 7 * * *' for once daily at 07:00 UTC, or '0 */3 * * *' for every 3h.
     - cron: '0 */6 * * *'
-  workflow_dispatch: {}   # lets you run it manually from the Actions tab
+  workflow_dispatch:
 
 permissions:
-  contents: write         # needed to commit the updated seen.json back
+  contents: write
 
 concurrency:
   group: johnpye-monitor
@@ -46,4 +44,3 @@ jobs:
           else
             echo "No state change."
           fi
-
